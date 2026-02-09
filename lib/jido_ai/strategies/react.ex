@@ -479,15 +479,20 @@ defmodule Jido.AI.Strategies.ReAct do
                 iteration: state[:iteration]
               })
 
-            [
-              Directive.ToolExec.new!(%{
-                id: id,
-                tool_name: tool_name,
-                action_module: action_module,
-                arguments: arguments,
-                context: exec_context
-              })
-            ]
+            tool_exec_attrs = %{
+              id: id,
+              tool_name: tool_name,
+              action_module: action_module,
+              arguments: arguments,
+              context: exec_context
+            }
+
+            tool_exec_attrs =
+              if config[:tool_timeout],
+                do: Map.put(tool_exec_attrs, :timeout, config[:tool_timeout]),
+                else: tool_exec_attrs
+
+            [Directive.ToolExec.new!(tool_exec_attrs)]
 
           :error ->
             # Issue #1 fix: Never silently drop - emit error result for unknown tools
@@ -552,7 +557,8 @@ defmodule Jido.AI.Strategies.ReAct do
       max_iterations: Keyword.get(opts, :max_iterations, @default_max_iterations),
       # base_tool_context is the persistent context from agent definition
       # per-request context is stored separately in state[:run_tool_context]
-      base_tool_context: Map.get(agent.state, :tool_context) || Keyword.get(opts, :tool_context, %{})
+      base_tool_context: Map.get(agent.state, :tool_context) || Keyword.get(opts, :tool_context, %{}),
+      tool_timeout: Keyword.get(opts, :tool_timeout)
     }
   end
 

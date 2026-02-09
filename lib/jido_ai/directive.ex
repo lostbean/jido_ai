@@ -136,6 +136,9 @@ defmodule Jido.AI.Directive do
                 context:
                   Zoi.map(description: "Execution context passed to Jido.Exec.run/3")
                   |> Zoi.default(%{}),
+                timeout:
+                  Zoi.integer(description: "Execution timeout in milliseconds")
+                  |> Zoi.optional(),
                 metadata: Zoi.map(description: "Arbitrary metadata for tracking") |> Zoi.default(%{})
               },
               coerce: true
@@ -610,11 +613,16 @@ defimpl Jido.AgentServer.DirectiveExec, for: Jido.AI.Directive.ToolExec do
     } = directive
 
     action_module = Map.get(directive, :action_module)
+    timeout = Map.get(directive, :timeout)
     agent_pid = self()
     task_supervisor = Jido.AI.Directive.Helper.get_task_supervisor(state)
 
     # Get tools from state (agent's registered actions from skill or strategy)
     tools = get_tools_from_state(state)
+
+    # Build executor options, including timeout when specified
+    base_opts = [tools: tools]
+    exec_opts = if timeout, do: Keyword.put(base_opts, :timeout, timeout), else: base_opts
 
     # Capture parent trace context before spawning
     parent_trace_ctx = TraceContext.get()
@@ -629,10 +637,10 @@ defimpl Jido.AgentServer.DirectiveExec, for: Jido.AI.Directive.ToolExec do
         try do
           case action_module do
             nil ->
-              Executor.execute(tool_name, arguments, context, tools: tools)
+              Executor.execute(tool_name, arguments, context, exec_opts)
 
             module when is_atom(module) ->
-              Executor.execute_module(module, arguments, context)
+              Executor.execute_module(module, arguments, context, exec_opts)
           end
         rescue
           e ->
