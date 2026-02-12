@@ -61,14 +61,14 @@ defmodule JidoAi.MixProject do
     [
       # Jido ecosystem
       {:jido, "~> 2.0.0-rc.4"},
-      {:req_llm, "~> 1.5"},
+      {:req_llm, github: "lostbean/req_llm", branch: "fix/strict-tool-anthropic-format", override: true},
       {:jido_browser, github: "agentjido/jido_browser", branch: "main"},
 
       # Runtime
       {:fsmx, "~> 0.5"},
       {:jason, "~> 1.4"},
       {:nimble_options, "~> 1.1"},
-      {:splode, "~> 0.3.0"},
+      {:splode, "~> 0.3.0", override: true},
       {:term_ui, "~> 0.2"},
       {:yaml_elixir, "~> 2.9"},
       {:zoi, "~> 0.16"},
